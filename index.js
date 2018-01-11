@@ -30,16 +30,41 @@ const startServer = options => {
   await client.send('DOM.enable')
   await client.send('CSS.enable')
 
+  const inlineStylesheetIndex = new Set();
+  client.on('CSS.styleSheetAdded', stylesheet => {
+    const { header } = stylesheet
+    if (header.isInline || header.sourceURL === '' || header.sourceURL.startsWith('blob:')) {
+      inlineStylesheetIndex.add(header.styleSheetId);
+    }
+  });
+
   //Start tracking CSS coverage
   await client.send('CSS.startRuleUsageTracking')
 
   await page.goto(`http://localhost:${options.port}`)
+  // const content = await page.content();
+  // console.log(content);
 
   const rules = await client.send('CSS.takeCoverageDelta')
   const usedRules = rules.coverage.filter(rule => {
     return rule.used
   })
-  console.log(usedRules)
+
+  const slices = [];
+  for (const usedRule of usedRules) {
+    // console.log(usedRule.styleSheetId)
+    if (inlineStylesheetIndex.has(usedRule.styleSheetId)) {
+      continue;
+    }
+
+    const stylesheet = await client.send('CSS.getStyleSheetText', {
+      styleSheetId: usedRule.styleSheetId
+    });
+
+    slices.push(stylesheet.text.slice(usedRule.startOffset, usedRule.endOffset));
+  }
+
+  console.log(slices.join(''));
 
   await page.close();
   await browser.close();
