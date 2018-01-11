@@ -36,7 +36,10 @@ const startServer = options => {
   await page.goto(`http://localhost:${options.port}`)
 
   const rules = await client.send('CSS.takeCoverageDelta')
-  console.log(rules)
+  const usedRules = rules.coverage.filter(rule => {
+    return rule.used
+  })
+  console.log(usedRules)
 
   await page.close();
   await browser.close();
