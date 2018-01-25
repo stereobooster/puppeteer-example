@@ -25,7 +25,7 @@ const startServer = options => {
 
   //Start sending raw DevTools Protocol commands are sent using `client.send()`
   //First off enable the necessary "Domains" for the DevTools commands we care about
-  const client = page._client
+  const client = await page.target().createCDPSession()
   await client.send('Page.enable')
   await client.send('DOM.enable')
   await client.send('CSS.enable')
